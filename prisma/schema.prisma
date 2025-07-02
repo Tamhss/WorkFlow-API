@@ -6,3 +6,147 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum SystemRole {
+  BOD
+  MEMBER
+}
+
+enum ProjectRole {
+  MANAGER
+  MEMBER
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum ProjectStatus {
+  ACTIVE
+  INACTIVE
+  CANCELLED
+  COMPLETED
+}
+
+enum ScheduleType {
+  TASK
+  PROJECT
+  PERSONAL
+}
+
+model user {
+  id        Int        @id @default(autoincrement())
+  email     String     @unique
+  name      String
+  nickName  String?    @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  user_auth user_auth?
+
+  project_user project_user[]
+  task_user    task_user[]
+  roles        user_role[]
+}
+
+model user_auth {
+  userId    Int      @id
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user user @relation(fields: [userId], references: [id])
+}
+
+model role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  permissions Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user_role user_role[]
+}
+
+model user_role {
+  userId    Int
+  roleId    Int
+  createdAt DateTime @default(now()) @map("createdTime")
+  updatedAt DateTime @default(now()) @map("updatedTime")
+
+  user user @relation(fields: [userId], references: [id])
+  role role @relation(fields: [roleId], references: [id])
+
+  @@id([userId, roleId])
+}
+
+model project {
+  id           Int           @id @default(autoincrement())
+  name         String
+  projetcImage String?
+  description  String?
+  startDate    DateTime?
+  endDate      DateTime?
+  manMonth     Int?
+  status       ProjectStatus @default(ACTIVE)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  task        task[]
+  projectUser project_user[]
+  schedule    shedule[]
+}
+
+model project_user {
+  id        Int         @id @default(autoincrement())
+  userId    Int
+  projectId Int
+  role      ProjectRole @default(MEMBER)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user    user    @relation(fields: [userId], references: [id])
+  project project @relation(fields: [projectId], references: [id])
+}
+
+model task {
+  id          Int        @id @default(autoincrement())
+  taskName    String
+  description String?
+  status      TaskStatus @default(TODO)
+  projectId   Int
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  project   project     @relation(fields: [projectId], references: [id])
+  taskUsers task_user[]
+  shedule   shedule[]
+}
+
+model task_user {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  taskId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user user @relation(fields: [userId], references: [id])
+  task task @relation(fields: [taskId], references: [id])
+}
+
+model shedule {
+  id          Int          @id @default(autoincrement())
+  title       String
+  description String?
+  projectId   Int
+  taskId      Int
+  type        ScheduleType @default(TASK)
+  startTime   DateTime
+  endTime     DateTime
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  task    task    @relation(fields: [taskId], references: [id])
+  project project @relation(fields: [projectId], references: [id])
+}
